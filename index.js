@@ -31,6 +31,7 @@ function createMainWindow() {
 	});
 
 	win.loadUrl(`file://${__dirname}/index.html`);
+	//win.openDevTools();
 	win.on('closed', onClosed);
 
 	return win;
@@ -53,12 +54,17 @@ app.on('ready', () => {
 
   //menu
 	var dockMenu = Menu.buildFromTemplate([
-			{ label: 'send a file', click: function(){ console.log('send a file.'); }}
+			{ label: 'send a file', click: function(){ console.log('send a file.'); }},
+			{ type: 'separator' },
+			{ label: 'exit', click: function(){ app.exit(); }}
 	]);
 	app.dock.setMenu(dockMenu);
 	//tray
 	var iconPath = path.join(__dirname, 'icons', 'icon.png');
-	new Tray(iconPath);
+	var appIcon = new Tray(iconPath);
+	appIcon.setToolTip('edge filesender.');
+	appIcon.setContextMenu(dockMenu);
+
 	//move
 	const positioner = new Positioner(mainWindow);
 	positioner.move('topRight');
