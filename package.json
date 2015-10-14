@@ -31,7 +31,9 @@
     "electron-debug": "^0.2.1",
     "electron-positioner": "^2.0.1",
     "nanodiscover": "^1.0.2",
-    "jquery": "^2.1.4"
+    "jquery": "^2.1.4",
+    "fuse4js": "*",
+    "partition.io": "*"
   },
   "devDependencies": {
     "electron-packager": "^5.0.0",
