@@ -25,7 +25,7 @@
 NSInteger const RECEIVED_CALLBACK_RESPONSE = 2;
 NSInteger const WAITING_FOR_CALLBACK_RESPONSE = 1;
 
-static NSTimeInterval maxCallbackRequestWaitTime = 0.25f;
+static NSTimeInterval maxCallbackRequestWaitTime = 5.0f;
 static RequestManager* sharedInstance = nil;
 
 @implementation RequestManager
@@ -419,7 +419,7 @@ static RequestManager* sharedInstance = nil;
     
     [self writeFile:jsonString];
     
-    [_socket writeData:data withTimeout:5.0 tag:0];
+    [_socket writeData:data withTimeout:-1 tag:0];
     
     [_callbackLock unlockWithCondition:WAITING_FOR_CALLBACK_RESPONSE];
     

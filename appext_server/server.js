@@ -13,13 +13,13 @@ var server = net.createServer(function(client) { //'connection' listener
     var req = JSON.parse(str);
     if(req.command == "getContextMenuList") {
        console.log(req.command, JSON.stringify(req.value));
-       var resp = {
+       var resp = [{
           title: "Example Menu",
           contextMenuItems : [],
           enabled: true,
           iconId: "",
           uuid: "2d91b66c-e01d-4c04-b2cd-c5733b6e36be"
-       };
+       }];
        client.end(JSON.stringify(resp));
     }
   });
