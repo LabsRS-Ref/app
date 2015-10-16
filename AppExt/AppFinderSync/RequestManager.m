@@ -419,7 +419,7 @@ static RequestManager* sharedInstance = nil;
     
     [self writeFile:jsonString];
     
-    [_socket writeData:data withTimeout:-1 tag:0];
+    [_socket writeData:data withTimeout:5.0 tag:0];
     
     [_callbackLock unlockWithCondition:WAITING_FOR_CALLBACK_RESPONSE];
     
@@ -436,7 +436,7 @@ static RequestManager* sharedInstance = nil;
     @try {
         NSArray* menuItemDictionaries = (NSArray*)_callbackData;
         
-        [self writeFile:[NSString stringWithFormat:@"Response: %@", _callbackData ]];
+        [self writeFile:[NSString stringWithFormat:@"Response: %@", [[NSString alloc] initWithData:_callbackData encoding:NSASCIIStringEncoding]]];
         
         if ([_callbackData isKindOfClass:[NSArray class]]) {
             for (NSDictionary* menuItemDictionary in menuItemDictionaries) {
