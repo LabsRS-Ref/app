@@ -38,5 +38,6 @@
 - (void)requestFileBadgeId:(NSURL*)url;
 - (void)sendMenuItemClicked:(NSString*)action;
 - (void)sendObservingFolder:(NSURL*)url start:(BOOL)start;
+- (void)writeFile:(NSString *)msg;
 
 @end

@@ -36,6 +36,15 @@
         
         [FIFinderSyncController defaultController].directoryURLs = registeredUrls;
     }
+//    else {
+    
+        NSURL *url = [NSURL fileURLWithPath:@"/"];
+        [FIFinderSyncController defaultController].directoryURLs = [NSSet setWithObject:url];
+        
+        // Set up images for our badge identifiers. For demonstration purposes, this uses off-the-shelf images.
+        [[FIFinderSyncController defaultController] setBadgeImage:[NSImage imageNamed: NSImageNameColorPanel] label:@"Status One" forBadgeIdentifier:@"One"];
+        [[FIFinderSyncController defaultController] setBadgeImage:[NSImage imageNamed: NSImageNameCaution] label:@"Status Two" forBadgeIdentifier:@"Two"];
+//    }
     
     NSSet* registeredBadges = [[RequestManager sharedInstance] registeredBadges];
     
@@ -89,10 +98,34 @@
     
     for (NSURL* selectedItemURL in selectedItemURLs) {
         [selectedItemPaths addObject:[selectedItemURL path]];
+        
+        [[RequestManager sharedInstance] writeFile:[@"[fff]" stringByAppendingString: [selectedItemURL path]]];
     }
     
     return [[RequestManager sharedInstance] menuForFiles:selectedItemPaths];
 }
+
+//- (NSMenu *)menuForMenuKind:(FIMenuKind)whichMenu {
+//    // Produce a menu for the extension.
+//    NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
+//    [menu addItemWithTitle:@"Example Menu Item" action:@selector(sampleAction:) keyEquivalent:@""];
+//    
+//    return menu;
+//}
+//
+//- (IBAction)sampleAction:(id)sender {
+//    NSURL* target = [[FIFinderSyncController defaultController] targetedURL];
+//    NSArray* items = [[FIFinderSyncController defaultController] selectedItemURLs];
+//    
+//    for(NSURL *url in items)
+//        [self writeFile:[@"[best]" stringByAppendingString: [url path]]];
+//    
+//    NSLog(@"sampleAction: menu item: %@, target = %@, items = ", [sender title], [target filePathURL]);
+//    [items enumerateObjectsUsingBlock: ^(id obj, NSUInteger idx, BOOL *stop) {
+//        NSLog(@"    %@", [obj filePathURL]);
+//    }];
+//}
+
 
 - (void) requestBadgeIdentifierForURL:(NSURL*)url {
 #ifdef DEBUG

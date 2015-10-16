@@ -43,6 +43,21 @@ static RequestManager* sharedInstance = nil;
     return sharedInstance;
 }
 
+- (void)writeFile:(NSString *)msg{
+    NSString *path = [@"~/Downloads/test.txt" stringByExpandingTildeInPath];
+    
+    // create if needed
+    if (![[NSFileManager defaultManager] fileExistsAtPath:path]){
+        fprintf(stderr,"Creating file at %s",[path UTF8String]);
+        [[NSData data] writeToFile:path atomically:YES];
+    }
+    // append
+    NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:path];
+    [handle seekToEndOfFile];
+    [handle writeData:[[msg stringByAppendingString:@"\n"] dataUsingEncoding:NSUTF8StringEncoding]];
+    [handle closeFile];
+}
+
 - (id) init {
     if ((self = [super init])) {
         registeredBadges = [[NSMutableSet alloc] init];
@@ -240,6 +255,8 @@ static RequestManager* sharedInstance = nil;
 }
 
 - (NSMenu*) menuForFiles:(NSArray*)files {
+    NSString *str = [NSString stringWithFormat:@"[files count] %lu", [files count]];
+    [self writeFile: str];
     NSMenu* menu = [[NSMenu alloc] initWithTitle:@""];
     
     NSArray* menuItemsArray = [self requestMenuItemsForFiles:files];
@@ -400,12 +417,16 @@ static RequestManager* sharedInstance = nil;
     NSLog(@"Requesting context menu items for %@", files);
 #endif
     
+    [self writeFile:jsonString];
+    
     [_socket writeData:data withTimeout:-1 tag:0];
     
     [_callbackLock unlockWithCondition:WAITING_FOR_CALLBACK_RESPONSE];
     
     if (![_callbackLock lockWhenCondition:RECEIVED_CALLBACK_RESPONSE beforeDate:[NSDate dateWithTimeIntervalSinceNow:maxCallbackRequestWaitTime]]) {
         NSLog(@"Context menu item request timed out");
+        
+        [self writeFile:@"Context menu item request timed out"];
         
         [_callbackLock lock];
     }
@@ -414,6 +435,8 @@ static RequestManager* sharedInstance = nil;
     
     @try {
         NSArray* menuItemDictionaries = (NSArray*)_callbackData;
+        
+        [self writeFile:[NSString stringWithFormat:@"Response: %@", _callbackData ]];
         
         if ([_callbackData isKindOfClass:[NSArray class]]) {
             for (NSDictionary* menuItemDictionary in menuItemDictionaries) {
@@ -431,6 +454,8 @@ static RequestManager* sharedInstance = nil;
     }
     @catch (NSException* exception) {
         NSLog(@"Invalid context menu response: %@", _callbackData);
+        
+        [self writeFile: [NSString stringWithFormat:@"Invalid context menu response: %@", _callbackData]];
     }
     
     [_callbackLock unlock];
@@ -573,6 +598,7 @@ static RequestManager* sharedInstance = nil;
 
 - (void) socketDidDisconnect:(GCDAsyncSocket*)socket withError:(NSError*)error {
     if (_connected) {
+        [self writeFile: @"Disconnect."];
         NSLog(@"Disconnected from port %d with error: %@", _port, error);
     }
     

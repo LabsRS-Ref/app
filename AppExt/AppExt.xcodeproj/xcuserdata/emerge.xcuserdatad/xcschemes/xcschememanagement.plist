@@ -9,6 +9,11 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>AppFinderShare.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
 		<key>AppFinderSync.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
@@ -23,6 +28,11 @@
 			<true/>
 		</dict>
 		<key>75171DF31BCF8CE900DB8669</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>758593C91BCFCCA80061CCBF</key>
 		<dict>
 			<key>primary</key>
 			<true/>

@@ -5,9 +5,11 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>fffffwwww</string>
+	<string>AppFinderShare</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconFile</key>
+	<string>icon</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -24,20 +26,19 @@
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
-	<key>LSUIElement</key>
-	<true/>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>
-		<dict/>
+		<dict>
+			<key>NSExtensionActivationRule</key>
+			<string>TRUEPREDICATE</string>
+		</dict>
 		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.FinderSync</string>
+		<string>com.apple.share-services</string>
 		<key>NSExtensionPrincipalClass</key>
-		<string>FinderSync</string>
+		<string>ShareViewController</string>
 	</dict>
 	<key>NSHumanReadableCopyright</key>
-	<string>© 2015 emerge Inc. All Rights Reserved.</string>
-	<key>NSPrincipalClass</key>
-	<string>NSApplication</string>
+	<string>Copyright © 2015年 Emerge. All rights reserved.</string>
 </dict>
 </plist>
