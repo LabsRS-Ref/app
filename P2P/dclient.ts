@@ -17,8 +17,8 @@
 
 import net = require('net');
 
-var i = 0;
-
+var i = 0; 
+ 
 var socket = net.connect(9999, ()=>{
 	
 for(var i = 0; i < 1000000; i++){

@@ -16,9 +16,9 @@ var packetFormatter = {
 		var buf = new Buffer(1 /* Packet Type */ + 1 /* File Id */ + 1 /* Reader Id */  + 1 /* Index inside Chunk */ + dataBuffer.length);
 		buf.writeInt8(1, 0); //TYPE = 1
 		buf.writeInt8(fileId, 1); 
-		buf.writeInt8(readerId, 2);
+		buf.writeInt8(readerId, 2); 
 		buf.writeInt8(index, 3);
-		dataBuffer.copy(buf, 4);
+		dataBuffer.copy(buf, 4); 
 		return buf;
 	},
 	

@@ -16,10 +16,10 @@ var cli = require('cli_debug');
 var downloadDir = process.env.HOME + "/Downloads";
 
 cli.debug();
-const enum errors {
-	missing_euid,
+const enum errors { 
+	missing_euid, 
 	missing_auth,
-	tear_down,
+	tear_down, 
 	dup_connection,
 	offline
 }

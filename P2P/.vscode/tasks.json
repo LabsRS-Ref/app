@@ -5,5 +5,5 @@
     // define the task to be a watching task
     "isWatching": true,
     // use the standard tsc in watch mode problem matcher to find compile problems in the output.
-    "problemMatcher": "$tsc-watch"
+    "problemMatcher": "$tsc-watch" 
 }

@@ -1,6 +1,7 @@
 /dist
 build/
 # Logs
+DerivedData
 logs
 *.log
 
