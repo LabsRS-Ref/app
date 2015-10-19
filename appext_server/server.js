@@ -1,6 +1,10 @@
 var net = require("net");
 
-var server = net.createServer(function(client) { //'connection' listener
+var server = net.createServer({
+  allowHalfOpen: false,
+  pauseOnConnect: false
+},
+function(client) { //'connection' listener
   client.setTimeout(2601000);
   client.setNoDelay(true);
   console.log('client connected');
@@ -11,8 +15,9 @@ var server = net.createServer(function(client) { //'connection' listener
   client.on('data', function(data) {
     var str = data.toString();
     var req = JSON.parse(str);
+    console.log(str);
+    //console.log(req.command, JSON.stringify(req.value));
     if(req.command == "getContextMenuList") {
-       console.log(req.command, JSON.stringify(req.value));
        var resp = [{
           title: "Example Menu",
           contextMenuItems : [],
@@ -20,7 +25,13 @@ var server = net.createServer(function(client) { //'connection' listener
           iconId: "",
           uuid: "2d91b66c-e01d-4c04-b2cd-c5733b6e36be"
        }];
-       client.end(JSON.stringify(resp));
+       var wrapper = {
+         command : "menuItems",
+         value: JSON.stringify(resp)
+       };
+       client.end(JSON.stringify(wrapper));
+    } else{
+       client.end("{}");
     }
   });
 
@@ -41,7 +52,7 @@ var server = net.createServer(function(client) { //'connection' listener
   //     ]
   // };
   // respond(client, JSON.stringify(resp));
-  //client.write("HELLO");
+  client.write("HELLO");
   //client.pipe(client);
 });
 

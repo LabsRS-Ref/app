@@ -25,8 +25,9 @@
 NSInteger const RECEIVED_CALLBACK_RESPONSE = 2;
 NSInteger const WAITING_FOR_CALLBACK_RESPONSE = 1;
 
-static NSTimeInterval maxCallbackRequestWaitTime = 5.0f;
+static NSTimeInterval maxCallbackRequestWaitTime = 0.5f;
 static RequestManager* sharedInstance = nil;
+static NSMutableArray* menuItems = nil;
 
 @implementation RequestManager
 
@@ -41,6 +42,20 @@ static RequestManager* sharedInstance = nil;
     }
     
     return sharedInstance;
+}
+
+- (NSArray*) getMenuItems {
+    @synchronized(self) {
+        if (!menuItems) {
+            menuItems = [[NSMutableArray alloc] init];
+            NSMutableArray* menuItemDictionaries = [[NSMutableArray alloc] init];
+            NSDictionary* item = [NSDictionary dictionaryWithObjectsAndKeys: @"Example Menu", @"title", @[], @"contextMenuItems", @YES, @"enabled",@"", @"iconId", @"2d91b66c-e01d-4c04-b2cd-c5733b6e36be", @"uuid", nil];
+            [menuItemDictionaries addObject:item];
+            
+            [menuItems addObject:item];
+        }
+    }
+    return menuItems;
 }
 
 - (void)writeFile:(NSString *)msg{
@@ -164,6 +179,9 @@ static RequestManager* sharedInstance = nil;
 }
 
 - (void) createActionMenuItem:(NSMenu*)menu title:(NSString*)title index:(NSInteger)index enabled:(BOOL)enabled uuid:(NSString*)uuid iconId:(NSString*)iconId files:(NSArray*)files {
+    
+    //[self writeFile: [NSString stringWithFormat:@"\n createActionMenuItem: %@ %lu %hhd %@ %lu", title, index, enabled, uuid, [files count]]];
+    
     NSMenuItem* mainMenuItem = nil;
     
     if (!enabled) {
@@ -177,6 +195,8 @@ static RequestManager* sharedInstance = nil;
         [menuUuidDictionary setValue:uuid forKey:@"uuid"];
         
         [_menuUuidDictionary setValue:menuUuidDictionary forKey:uuid];
+        
+        //[self writeFile:[NSString stringWithFormat:@"\n _menuUuidDictionary %@", _menuUuidDictionary[uuid]]];
         
         SEL actionSelector = sel_registerName([[@"__CONTEXT_MENU_ACTION_" stringByAppendingString:[@(index)stringValue]] UTF8String]);
         
@@ -195,6 +215,8 @@ static RequestManager* sharedInstance = nil;
         mainMenuItem = [menu insertItemWithTitle:title action:actionSelector keyEquivalent:@"" atIndex:index];
     }
     
+    //[self writeFile: @"\n menu after decision"];
+    
     if (enabled) {
         [mainMenuItem setTarget:self];
     }
@@ -211,13 +233,17 @@ static RequestManager* sharedInstance = nil;
 }
 
 - (void) executeCommand:(NSData*)data {
+    NSString *str = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    [self writeFile:[NSString stringWithFormat:@"executeCommand: %@", str]];
+    
     if (!data || [data length] == 0) {
         NSLog(@"Cannot parse empty data");
-        
         return;
     }
     
     NSDictionary* jsonDictionary = [data objectFromJSONData];
+    
+    [self writeFile:[NSString stringWithFormat:@"json DICT: %@, value: %@", jsonDictionary[@"command"], jsonDictionary[@"value"]]];
     
     NSString* command = jsonDictionary[@"command"];
     NSData* value = jsonDictionary[@"value"];
@@ -259,7 +285,7 @@ static RequestManager* sharedInstance = nil;
     [self writeFile: str];
     NSMenu* menu = [[NSMenu alloc] initWithTitle:@""];
     
-    NSArray* menuItemsArray = [self requestMenuItemsForFiles:files];
+    NSArray* menuItemsArray = [self getMenuItems];
     
     if (!menuItemsArray || [menuItemsArray count] == 0) {
         return menu;
@@ -273,10 +299,23 @@ static RequestManager* sharedInstance = nil;
             continue;
         }
         
+        //[self writeFile: [NSString stringWithFormat:@"\n main Title: %@", mainMenuTitle]];
+        
         NSArray* childrenSubMenuItems = (NSArray*)menuItemDictionary[@"contextMenuItems"];
+        
+        //[self writeFile: [NSString stringWithFormat:@"\n childrenSubMenuItems: %lu", [childrenSubMenuItems count]]];
+        
         BOOL enabled = [menuItemDictionary[@"enabled"] boolValue];
+        
+        //[self writeFile: [NSString stringWithFormat:@"\n enabled: %hhd", enabled]];
+        
         NSString* iconId = menuItemDictionary[@"iconId"];
+        
+        //[self writeFile: [NSString stringWithFormat:@"\n iconId: %@", iconId]];
+        
         NSString* uuid = menuItemDictionary[@"uuid"];
+        
+        //[self writeFile: [NSString stringWithFormat:@"\n uuid: %@", uuid]];
         
         if (childrenSubMenuItems && [childrenSubMenuItems count] != 0) {
             NSMenuItem* mainMenuItem = [[NSMenuItem alloc] initWithTitle:mainMenuTitle action:nil keyEquivalent:@""];
@@ -307,6 +346,10 @@ static RequestManager* sharedInstance = nil;
 #endif
     
     [_callbackLock lock];
+    
+    //NSArray* menuItemDictionaries = (NSArray*)_callbackData;
+    
+    //[self writeFile: [NSString stringWithFormat: @"process menu items: %lu \r\n %@", [menuItemDictionaries count], [[NSString alloc] initWithData:_callbackData encoding:NSUTF8StringEncoding]]];
     
     _callbackData = cmdData;
     
@@ -417,16 +460,12 @@ static RequestManager* sharedInstance = nil;
     NSLog(@"Requesting context menu items for %@", files);
 #endif
     
-    [self writeFile:jsonString];
-    
     [_socket writeData:data withTimeout:-1 tag:0];
     
     [_callbackLock unlockWithCondition:WAITING_FOR_CALLBACK_RESPONSE];
     
     if (![_callbackLock lockWhenCondition:RECEIVED_CALLBACK_RESPONSE beforeDate:[NSDate dateWithTimeIntervalSinceNow:maxCallbackRequestWaitTime]]) {
         NSLog(@"Context menu item request timed out");
-        
-        [self writeFile:@"Context menu item request timed out"];
         
         [_callbackLock lock];
     }
@@ -435,8 +474,6 @@ static RequestManager* sharedInstance = nil;
     
     @try {
         NSArray* menuItemDictionaries = (NSArray*)_callbackData;
-        
-        [self writeFile:[NSString stringWithFormat:@"Response: %@", [[NSString alloc] initWithData:_callbackData encoding:NSASCIIStringEncoding]]];
         
         if ([_callbackData isKindOfClass:[NSArray class]]) {
             for (NSDictionary* menuItemDictionary in menuItemDictionaries) {
@@ -454,8 +491,6 @@ static RequestManager* sharedInstance = nil;
     }
     @catch (NSException* exception) {
         NSLog(@"Invalid context menu response: %@", _callbackData);
-        
-        [self writeFile: [NSString stringWithFormat:@"Invalid context menu response: %@", _callbackData]];
     }
     
     [_callbackLock unlock];
@@ -468,18 +503,32 @@ static RequestManager* sharedInstance = nil;
     NSLog(@"Menu item clicked with uuid %@", uuid);
 #endif
     
+    [self writeFile: [NSString stringWithFormat:@"\n [WWW] Menu item clicked with uuid %@ %@", uuid, _menuUuidDictionary]];
+    
     NSDictionary* menuUuidDictionary = _menuUuidDictionary[uuid];
+    
+    //[self writeFile: [NSString stringWithFormat:@"\n menuUuidDictionary %@", menuUuidDictionary]];
     
     NSDictionary* menuItemClickedDictionary = [[NSMutableDictionary alloc] initWithCapacity:2];
     
     [menuItemClickedDictionary setValue:@"contextMenuAction" forKey:@"command"];
     [menuItemClickedDictionary setValue:menuUuidDictionary forKey:@"value"];
     
-    NSData* data = [[[menuItemClickedDictionary JSONString] stringByAppendingString:@"\r\n"] dataUsingEncoding:NSUTF8StringEncoding];
+    //NSData* data = [[[menuItemClickedDictionary JSONString] stringByAppendingString:@"\r\n"] dataUsingEncoding:NSUTF8StringEncoding];
+    
+    //[self writeFile: [NSString stringWithFormat:@"\n data %@", data]];
+    
+    NSString* jsonString = [menuItemClickedDictionary JSONString];
+    NSData* data = [[jsonString stringByAppendingString:@"\r\n"] dataUsingEncoding:NSUTF8StringEncoding];
+    
+    [self writeFile: [NSString stringWithFormat:@"\n JSONString %@", jsonString]];
+    
+    [_callbackLock lock];
     
     [_socket writeData:data withTimeout:-1 tag:0];
-    
     [_menuUuidDictionary removeAllObjects];
+    
+    [_callbackLock unlock];
 }
 
 - (void) sendObservingFolder:(NSURL*)url start:(BOOL)start {
@@ -561,15 +610,23 @@ static RequestManager* sharedInstance = nil;
 - (void) socket:(GCDAsyncSocket*)socket didConnectToHost:(NSString*)host port:(UInt16)port {
     NSLog(@"Successfully connected to host %@ on port %hu", host, port);
     
-    _connected = YES;
+    _connected = YES; 
     
-    [socket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:-1 tag:0];
+    //[socket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:-1 tag:0];
+    [socket readDataWithTimeout:-1.0 tag:0];
 }
 
 - (void) socket:(GCDAsyncSocket*)socket didReadData:(NSData*)data withTag:(long)tag {
-    [self executeCommand:[data subdataWithRange:NSMakeRange(0, [data length] - 2)]];
+    [self writeFile: [NSString stringWithFormat:@"\n didReadData %@", data]];
     
-    [socket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:-1 tag:0];
+    [self executeCommand:data];
+    
+//    [socket readDataToData:[GCDAsyncSocket CRLFData] withTimeout:-1 tag:0];
+    [socket readDataWithTimeout:-1.0 tag:0];
+}
+
+- (void) socket:(GCDAsyncSocket*)sock didWriteDataWithTag:(long)tag {
+    [self writeFile: @"[TTT] wrote."];
 }
 
 - (void) removeAllBadges {
