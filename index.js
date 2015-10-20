@@ -7,7 +7,7 @@ const Positioner = require('electron-positioner');
 const events = require('events')
 const fs = require('fs')
 const path = require('path');
-const discover = require("nanodiscover");
+const server = require("./appext_server/server");
 
 // report crashes to the Electron project
 require('crash-reporter').start();
@@ -68,13 +68,7 @@ app.on('ready', () => {
 	//move
 	const positioner = new Positioner(mainWindow);
 	positioner.move('topRight');
-	//advertisement
-	discover.createAnnouncer("edge","sender");
-	var browser = discover.createBrowser("edge","sender");
-	browser.on("nodeUp",function (ip) {
-	  	console.log("Found Node with IP ", ip);
-	});
-	browser.on("nodeDown",function (ip) {
-	  	console.log("Lost node with IP ", ip);
-	});
+
+	//server
+	server.serve(mainWindow.webContents);
 });

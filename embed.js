@@ -1,3 +1,6 @@
 $(document).ready(function(){
-    $("#board").html("decilious.");
+
+    require("ipc").on("contextMenuAction", function(files) {
+          $("#board").html( JSON.stringify(files) );
+    });
 });
