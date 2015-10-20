@@ -49,7 +49,7 @@ static NSMutableArray* menuItems = nil;
         if (!menuItems) {
             menuItems = [[NSMutableArray alloc] init];
             NSMutableArray* menuItemDictionaries = [[NSMutableArray alloc] init];
-            NSDictionary* item = [NSDictionary dictionaryWithObjectsAndKeys: @"Example Menu", @"title", @[], @"contextMenuItems", @YES, @"enabled",@"", @"iconId", @"2d91b66ce01d4c04b2cdc5733b6e36be", @"uuid", nil];
+            NSDictionary* item = [NSDictionary dictionaryWithObjectsAndKeys: @"分享到Edge", @"title", @[], @"contextMenuItems", @YES, @"enabled",@"", @"iconId", @"2d91b66ce01d4c04b2cdc5733b6e36be", @"uuid", nil];
             [menuItemDictionaries addObject:item];
             
             [menuItems addObject:item];
