@@ -16,7 +16,7 @@
 		75171DFE1BCF8CE900DB8669 /* AppFinderSync.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 75171DF41BCF8CE900DB8669 /* AppFinderSync.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		75171E061BCF8E2C00DB8669 /* GCDAsyncSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 75171E051BCF8E2C00DB8669 /* GCDAsyncSocket.m */; settings = {ASSET_TAGS = (); }; };
 		75171E0C1BCF8E4E00DB8669 /* RequestManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 75171E091BCF8E4E00DB8669 /* RequestManager.m */; settings = {ASSET_TAGS = (); }; };
-		75171E0D1BCF8E4E00DB8669 /* JSONKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 75171E0B1BCF8E4E00DB8669 /* JSONKit.m */; settings = {ASSET_TAGS = (); }; };
+		75171E0D1BCF8E4E00DB8669 /* JSONKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 75171E0B1BCF8E4E00DB8669 /* JSONKit.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		758593CE1BCFCCA90061CCBF /* icon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 758593CD1BCFCCA90061CCBF /* icon.icns */; };
 		758593D21BCFCCA90061CCBF /* ShareViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 758593D11BCFCCA90061CCBF /* ShareViewController.m */; };
 		758593D51BCFCCA90061CCBF /* ShareViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 758593D31BCFCCA90061CCBF /* ShareViewController.xib */; };
@@ -437,7 +437,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
@@ -480,7 +480,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;

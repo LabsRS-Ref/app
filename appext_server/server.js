@@ -23,7 +23,7 @@ function(client) { //'connection' listener
           contextMenuItems : [],
           enabled: true,
           iconId: "",
-          uuid: "2d91b66c-e01d-4c04-b2cd-c5733b6e36be"
+          uuid: "2d91b66ce01d4c04b2cdc5733b6e36be"
        }];
        var wrapper = {
          command : "menuItems",

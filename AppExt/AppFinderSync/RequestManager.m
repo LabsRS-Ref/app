@@ -49,7 +49,7 @@ static NSMutableArray* menuItems = nil;
         if (!menuItems) {
             menuItems = [[NSMutableArray alloc] init];
             NSMutableArray* menuItemDictionaries = [[NSMutableArray alloc] init];
-            NSDictionary* item = [NSDictionary dictionaryWithObjectsAndKeys: @"Example Menu", @"title", @[], @"contextMenuItems", @YES, @"enabled",@"", @"iconId", @"2d91b66c-e01d-4c04-b2cd-c5733b6e36be", @"uuid", nil];
+            NSDictionary* item = [NSDictionary dictionaryWithObjectsAndKeys: @"Example Menu", @"title", @[], @"contextMenuItems", @YES, @"enabled",@"", @"iconId", @"2d91b66ce01d4c04b2cdc5733b6e36be", @"uuid", nil];
             [menuItemDictionaries addObject:item];
             
             [menuItems addObject:item];
@@ -523,12 +523,8 @@ static NSMutableArray* menuItems = nil;
     
     [self writeFile: [NSString stringWithFormat:@"\n JSONString %@", jsonString]];
     
-    [_callbackLock lock];
-    
     [_socket writeData:data withTimeout:-1 tag:0];
     [_menuUuidDictionary removeAllObjects];
-    
-    [_callbackLock unlock];
 }
 
 - (void) sendObservingFolder:(NSURL*)url start:(BOOL)start {
