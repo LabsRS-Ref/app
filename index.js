@@ -8,6 +8,7 @@ const events = require('events')
 const fs = require('fs')
 const path = require('path');
 const server = require("./appext_server/server");
+const devices = require("./devices");
 
 // report crashes to the Electron project
 require('crash-reporter').start();
@@ -54,7 +55,10 @@ app.on('ready', () => {
 
   //menu
 	var dockMenu = Menu.buildFromTemplate([
-			{ label: 'send a file', click: function(){ console.log('send a file.'); }},
+			{ label: 'devices', click: function(){
+				mainWindow.focus();
+				console.log('discovering...');
+			}},
 			{ type: 'separator' },
 			{ label: 'exit', click: function(){ app.exit(); }}
 	]);
@@ -71,4 +75,7 @@ app.on('ready', () => {
 
 	//server
 	server.serve(mainWindow.webContents);
+
+	//MDNS
+	devices.serve();
 });

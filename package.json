@@ -32,7 +32,11 @@
     "electron-positioner": "^2.0.1",
     "jquery": "^2.1.4",
     "fuse4js": "*",
-    "partition.io": "*"
+    "mdns": "^2.2.10",
+    "uuid": "*",
+    "colors": "*",
+    "cli_debug": "*",
+    "debug" : "*"
   },
   "devDependencies": {
     "electron-packager": "^5.0.0",
