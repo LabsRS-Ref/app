@@ -36,7 +36,8 @@
     "uuid": "*",
     "colors": "*",
     "cli_debug": "*",
-    "debug" : "*"
+    "debug" : "*",
+    "spotify-node-applescript": "*"
   },
   "devDependencies": {
     "electron-packager": "^5.0.0",
