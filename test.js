@@ -40,7 +40,7 @@ function init(){
 init();
 
 module.exports.All = function(){
-        return mapped;
+        return Object.keys(mapped);
 }
 module.exports.GetServicesByMAC = function (MAC) {
         return addresses[mapped[MAC]];
