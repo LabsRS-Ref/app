@@ -13,9 +13,28 @@ function playTrack(track) {
                                 });
                     } else {
                             console.log("playing");
+                            spotify.next();
                     }
             });
         });
 }
 
-playTrack(track);
+function start(callback) {
+        spotify.pause(function() {
+                spotify.getState(function(err, state){
+                        if(err) { // maybe just started up
+                                    console.log("try play...");
+                                    process.nextTick(function() {
+                                            start(callback);
+                                    });
+                        } else {
+
+                                spotify.next();
+                        }
+                });
+        });
+}
+
+start(function () {
+        console.log("playing");
+});
