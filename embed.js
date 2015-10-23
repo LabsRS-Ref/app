@@ -7,7 +7,7 @@ $(document).ready(function(){
 
     rpc.on("ipp.UP", function(id, name, icon){
         console.log("UP", [].slice.call(arguments));
-        var content = "<div><img src=''" + icon + "' /></div>";
+        var content = "<div><img src='" + icon + "' /></div>";
         content += "<span>" + name + "</span>";
         $("#devices").html(content);
     });

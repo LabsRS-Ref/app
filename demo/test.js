@@ -1,4 +1,4 @@
-var arp = require("./arp");
+var arp = require("../devices/miscs/arp");
 var devices = require("./devices");
 
 //key:IP, value: { mac: MAC, services: { services }, expires: EXPIRES }

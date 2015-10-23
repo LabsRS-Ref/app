@@ -12,13 +12,11 @@ var fs = require("fs");
 var path = require("path");
 var fsextra = require("fs-extra");
 var helper = require("../miscs/helper");
+var arp = require("../miscs/arp");
 
 var SERVICE_TYPE = "_ipp._tcp.";
 var DATA_TMP_DIR = '/var/tmp/edge_ipp';
 var PDF_MIME = 'application/pdf';
-
-var alive = {};
-var watch_addr = {};
 
 function __print_job_thunk(cb) {
     return function (err, res) {
@@ -166,20 +164,21 @@ function print(data, service, copies, job_name, user_name) {
     }
 }
 
-function get_printer_attrs(printer, ip, service) {
+function get_printer_attrs(MAC, printer, ip, service) {
     printer.execute("Get-Printer-Attributes", null, function (err, res) {
         if (res && res.statusCode !== "successful-ok") err = res.statusCode;
 
         if (err) {
-            helper.retry(function() {
+            helper.retry(function () {
                 console.log("some error occurs, it will retry it 2 seconds after.".yellow);
-                get_printer_attrs(printer, ip, service);}, 2);
+                get_printer_attrs(MAC, printer, ip, service);
+            }, 2);
             return console.log(err.red);
         }
         else {
             console.log(service);
             var dev = {
-                id: ip,
+                id: MAC,
                 name: service.txtRecord.ty,
                 icon: helper.try_get(res, "printer-attributes-tag/printer-icons/0"),
                 raw: res,
@@ -199,70 +198,49 @@ function get_printer_attrs(printer, ip, service) {
     });
 }
 
-function get_ipp_info(ip, service) {
+function get_ipp_info(MAC, ip, service) {
     var url = util.format('http://%s:%d/%s', ip
         , service.port, service.txtRecord.rp);
     var printer = ipp.Printer(url);
-    if (printer) get_printer_attrs(printer, ip, service);
+    if (printer) get_printer_attrs(MAC, printer, ip, service);
 }
 
+function device_up_or_down(event, ip, service){
+    arp.getMAC(ip, function (code, addr) {
+        if (addr) {
+            console.log("MAC", addr);
+            if (event == 1) { //up
+                get_ipp_info(addr, ip, service)
+
+            } else if (event == 0) {
+                DeviceManager.unregister("ipp", addr);
+            }
+        }
+    });
+}
+
+
 function event_proxy(event, service) {
-    var s = JSON.stringify(service);
-    var typeString = mdns.makeServiceType(service.type).toString();
 
     if (!service.host) {
         console.log("Record is broken, need hostname:".red);
         console.log(JSON.stringify(service));
         return;
     }
-    dns.lookup(service.host, function (err, ip, family) {
+
+
+    dns.lookup(service.host, function (err, ip) {
+
         if (err) return console.log(err.red);
+        console.log((event ? "+" : "-") + " " + service.type + "@" + ip);
 
-    console.log((event ? "+" : "-") + " " + service.type + "@" + ip);
-    service.addresses = ip;
-    var addr = service.addresses;
-    if (Array.isArray(addr)) addr = addr[0];
-    if (event == 1) { //up
-        if (!alive[addr]) {
-            alive[addr] = {};
-        }
-        if (!alive[addr][typeString]) {
-            alive[addr][typeString] = {};
-        }
-        alive[addr][typeString][s] = service;
+        device_up_or_down(event, ip, service);
+    });
 
-        //console.log(service);
-        get_ipp_info(ip, service);
-
-        if (watch_addr[addr]) {
-            watch_addr[addr][0](service, Alive[addr]);
-        }
-    } else if (event == 0) {
-        if (Alive[addr] && alive[addr][typeString]) {
-            delete alive[addr][typeString][s];
-            if (Object.keys(Alive[addr][typeString]).length == 0) {
-                delete alive[addr][typeString];
-                if (Object.keys(Alive[addr]).length == 0) {
-                    delete alive[addr];
-                }
-            }
-        }
-        DeviceManager.unregister("ipp", ip);
-        if (watch_addr[addr]) {
-            watch_addr[addr][1](service, Alive[addr]);
-        }
-    }
-}
-)
-;
 }
 
 function browseService() {
-    var browser = mdns.createBrowser(SERVICE_TYPE, {
-        resolverSequence: [
-            mdns.rst.DNSServiceResolve()
-        ]
-    });
+    var browser = mdns.createBrowser(SERVICE_TYPE);
     browser.on("serviceUp", event_proxy.bind(null, 1));
     browser.on("serviceDown", event_proxy.bind(null, 0));
     browser.on("error", console.log);
@@ -270,16 +248,6 @@ function browseService() {
     console.log("STARTING BROWSER - " + SERVICE_TYPE);
     return browser;
 }
-
-global["alives"] = function alives() {
-    for (var addr in alive) {
-        console.log(addr.blue);
-        Object.keys(alive[addr]).forEach(function (k) {
-            console.log(k.green);
-            console.log(JSON.stringify(alive[addr][k]));
-        });
-    }
-};
 
 function init() {
     if (fs.existsSync(DATA_TMP_DIR)) fsextra.removeSync(DATA_TMP_DIR);
