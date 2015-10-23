@@ -10,6 +10,7 @@ const fs = require('fs')
 const path = require('path');
 const server = require("./appext_server/server");
 const device_manager = require("./devices/manager");
+const cli = require("cli_debug");
 
 // report crashes to the Electron project
 require('crash-reporter').start();
@@ -79,4 +80,6 @@ app.on('ready', () => {
 
 	//devices discover
     device_manager.init(mainWindow.webContents);
+
+    cli.debug();
 });

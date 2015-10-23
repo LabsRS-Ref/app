@@ -4,7 +4,6 @@ var dns = require("dns");
 var mdns = require("mdns");
 var request = require('request');
 var events = require("events");
-var cli = require("cli_debug");
 var mmm = require('mmmagic');
 var pdf_image_pack = require("pdf-image-pack");
 var uuid = require("uuid");
@@ -262,8 +261,6 @@ function init() {
     process.on("exit", function () {
         browser.stop();
     });
-
-    cli.debug();
 }
 
 init();
