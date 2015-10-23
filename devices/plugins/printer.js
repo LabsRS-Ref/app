@@ -5,6 +5,7 @@ var dns = require("dns");
 var mdns = require("mdns");
 var events = require("events");
 var cli = require("cli_debug");
+var helper = require("../miscs/helper");
 
 var SERVICE_TYPE = "_ipp._tcp.";
 
@@ -13,15 +14,21 @@ var alive = {};
 var watch_addr = {};
 
 function get_ipp_info(ip, service){
-        var url = util.format('http://%s:%d/%s', dev.bus.data.Lease.Address
+        var url = util.format('http://%s:%d/%s', ip
                 , service.port, service.txtRecord.rp);
-        var printer = ipp.Printer(ippUrl);
+        var printer = ipp.Printer(url);
         if(printer) {
                 printer.execute("Get-Printer-Attributes", null, function (err, res) {
                         if(err) return console.log(err.red);
 
-                        console.log(res);
-                        DeviceManager.register("ipp", res);
+                        var dev = {
+                                id: service.txtRecord.UUID,
+                                name: service.txtRecord.ty,
+                                icon: helper.try_get(res, "printer-attributes-tag/printer-icons/0"),
+                                raw: res
+                        };
+                        console.log(dev);
+                        DeviceManager.register("ipp", dev);
                 });
         }
 }
@@ -83,9 +90,7 @@ function browseService() {
         });
         browser.on("serviceUp", event_proxy.bind(null, 1));
         browser.on("serviceDown", event_proxy.bind(null, 0));
-        browser.on("error",(err) => {
-            console.log(err);
-        });
+        browser.on("error", console.log);
         browser.start();
         console.log("STARTING BROWSER - " + SERVICE_TYPE);
         return browser;
