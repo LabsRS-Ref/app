@@ -24,6 +24,7 @@ function register_global_funcs(){
                         Devices[ns][dev.id]["name"] = dev.name || "";
                         Devices[ns][dev.id]["icon"] = dev.icon || "";
                         Devices[ns][dev.id]["raw"] = dev.raw || {};
+                        Devices[ns][dev.id]["funcs"] = dev.funcs || {};
                 }
         };
         global.DeviceManager.unregister = function unregister(ns, id) {

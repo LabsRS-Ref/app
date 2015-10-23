@@ -5,13 +5,100 @@ var dns = require("dns");
 var mdns = require("mdns");
 var events = require("events");
 var cli = require("cli_debug");
+var mmm = require('mmmagic');
+var pdf_image_pack = require("pdf-image-pack");
+var uuid = require("uuid");
+var fsextra = require("fs-extra");
 var helper = require("../miscs/helper");
 
 var SERVICE_TYPE = "_ipp._tcp.";
+var DATA_TMP_DIR = '/var/tmp/edge_ipp';
+var PDF_MIME = 'application/pdf';
 
 var emitter = new events.EventEmitter();
 var alive = {};
 var watch_addr = {};
+
+function __print_job_thunk(cb) {
+        return (err, res) => {
+            if (err) return cb(err);
+            else {
+                return cb(undefined, res);
+            }
+        };
+}
+
+function __detect_buffer_mime(buffer, cb) {
+        var Magic = mmm.Magic;
+        var magic = new Magic(mmm.MAGIC_MIME_TYPE);
+        magic.detect(buf, cb);
+}
+
+function __blob2PDF(mime, data, cb) {
+        try {
+                if (mime === 'image/png' || mime === 'image/jpeg') { //exception
+                        var img_filename = path.join(DATA_TMP_DIR, uuid());
+                        fs.writeFile(img_filename, data, function (err) {
+                                if (err) return cb(err);
+                                var pdf_filename = path.join(DATA_TMP_DIR, UUIDstr());
+                                var opts = {
+                                        size: 'legal',
+                                        layout: 'portrait'
+                                };
+                                var slide = new pdf_image_pack(opts);
+                                slide.output([img_filename], pdf_filename, function (err2) {
+                                        if (err2) return cb(err2);
+                                        return cb(undefined, pdf_filename, img_filename);
+                                });
+                        });
+                } else {
+                       return cb(new Error('unsupported mime type: ' + mime));
+                }
+        } catch(err) {
+                return cb(err);
+        }
+}
+
+function print(buffer, service, copies, job_name, user_name) {
+        __detectBufferMime(buffer, function(err, mime) {
+                if(err) return console.log(err.red);
+                var msg = {
+                        "operation-attributes-tag": {
+                            "requesting-user-name": user_name,
+                            "job-name": job_name,
+                            "document-format": mime
+                        }
+                        , "job-attributes-tag": {
+                            "copies": copies
+                        }
+                        , data: buffer
+                };
+                var supported = helper.try_get(service, "printer-attributes-tag/document-format-supported");
+                if ((Array.isArray(supported) && supported.indexOf(mime) === -1)
+                || (typeof supported === 'string' && supported !== mime)) {
+                        return this.__blob2PDF(mime, data, function (err, pdf_filename, img_filename) {
+                                if (err) return console.log(err);
+
+                                fs.readFile(pdf_filename, function (err2, img_data) {
+                                        if (err2) return console.log(err2);
+
+                                        msg['data'] = img_data;
+                                        msg['operation-attributes-tag']['document-format'] = PDF_MIME;
+                                        printer.execute("Print-Job", msg, __print_job_thunk( function(err, res) {
+                                                console.log('Print-Job result', res);
+                                        }));
+                                        //clean up
+                                        fs.unlink(pdf_filename);
+                                        fs.unlink(img_filename);
+                                });
+                        });
+                } else {
+                        return printer.execute("Print-Job", msg, __printJobThunk( function(err, res) {
+                                console.log('Print-Job result', res);
+                        }));
+                }
+        });
+}
 
 function get_ipp_info(ip, service){
         var url = util.format('http://%s:%d/%s', ip
@@ -22,10 +109,19 @@ function get_ipp_info(ip, service){
                         if(err) return console.log(err.red);
 
                         var dev = {
-                                id: service.txtRecord.UUID,
+                                id: ip,
                                 name: service.txtRecord.ty,
                                 icon: helper.try_get(res, "printer-attributes-tag/printer-icons/0"),
-                                raw: res
+                                raw: res,
+                                funcs: {
+                                        print: function(params) {
+                                                var buffer = params.data;
+                                                var copies = params.copies || 1;
+                                                var job_name = params.job_name || uuid();
+                                                var user_name = params.user_name || "Anonymous";
+                                                return print(buffer, service, copies, job_name, user_name);
+                                        }
+                                }
                         };
                         console.log(dev);
                         DeviceManager.register("ipp", dev);
@@ -74,6 +170,7 @@ function event_proxy(event, service) {
                             }
                         }
                     }
+                    DeviceManager.unregister("ipp", ip);
                     //emitter.emit("serviceDown", addr, service);
                     if (watch_addr[addr]) {
                         watch_addr[addr][1](service, Alive[addr]);
@@ -107,6 +204,9 @@ global["alives"] = function alives(){
 };
 
 function init() {
+        if (fs.existsSync(DATA_TMP_DIR)) fsextra.removeSync(DATA_TMP_DIR);
+        fs.mkdirSync(DATA_TMP_DIR);
+
         var browser = browseService();
 
         browser.on("error", function(err){

@@ -38,7 +38,9 @@
     "cli_debug": "*",
     "debug" : "*",
     "ipp": "*",
-    "spotify-node-applescript": "*"
+    "spotify-node-applescript": "*",
+    "mmmagic": "*",
+    "fs-extra": "*"
   },
   "devDependencies": {
     "electron-packager": "^5.0.0",
