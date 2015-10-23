@@ -3,11 +3,14 @@ var ipp = require("ipp");
 var util = require("util");
 var dns = require("dns");
 var mdns = require("mdns");
+var request = require('request');
 var events = require("events");
 var cli = require("cli_debug");
 var mmm = require('mmmagic');
 var pdf_image_pack = require("pdf-image-pack");
 var uuid = require("uuid");
+var fs = require("fs");
+var path = require("path");
 var fsextra = require("fs-extra");
 var helper = require("../miscs/helper");
 
@@ -59,45 +62,110 @@ function __blob2PDF(mime, data, cb) {
         }
 }
 
-function print(buffer, service, copies, job_name, user_name) {
-        __detectBufferMime(buffer, function(err, mime) {
-                if(err) return console.log(err.red);
+function __detect_uri_mime(uri, cb) {
+        var opts = {};
+        opts.url = uri;
+        opts.method = 'HEAD';
+        opts.gzip = opts.gzip || true;
+        opts.headers = {
+            'User-Agent': USER_AGENT
+        };
+        request(opts, function (err, response) {
+            var mime = (response.headers && response.headers['content-type']) ? response.headers['content-type'] : 'text/plain';
+            return cb(err, mime);
+        });
+}
+
+function __uri2PDF(uri, cb) {
+        var opts = {};
+        opts.tmpFolderPath = DATA_TMP_DIR;
+        opts.fileName = path.join(DATA_TMP_DIR, uuid());
+        return cb(new Error("unsupported print method"));
+}
+
+function print(data, service, copies, job_name, user_name) {
+        if(Buffer.isBuffer(data)){
+                var buffer = data;
+                __detect_buffer_mime(buffer, function(err, mime) {
+                        if(err) return console.log(err.red);
+                        var msg = {
+                                "operation-attributes-tag": {
+                                    "requesting-user-name": user_name,
+                                    "job-name": job_name,
+                                    "document-format": mime
+                                }
+                                , "job-attributes-tag": {
+                                    "copies": copies
+                                }
+                                , data: buffer
+                        };
+                        var supported = helper.try_get(service, "printer-attributes-tag/document-format-supported");
+                        if ((Array.isArray(supported) && supported.indexOf(mime) === -1)
+                        || (typeof supported === 'string' && supported !== mime)) {
+                                return __blob2PDF(mime, data, function (err, pdf_filename, img_filename) {
+                                        if (err) return console.log(err);
+
+                                        fs.readFile(pdf_filename, function (err2, img_data) {
+                                                if (err2) return console.log(err2);
+
+                                                msg['data'] = img_data;
+                                                msg['operation-attributes-tag']['document-format'] = PDF_MIME;
+                                                printer.execute("Print-Job", msg, __print_job_thunk( function(err, res) {
+                                                        console.log('Print-Job result', res);
+                                                }));
+                                                //clean up
+                                                fs.unlink(pdf_filename);
+                                                fs.unlink(img_filename);
+                                        });
+                                });
+                        } else {
+                                return printer.execute("Print-Job", msg, __printJobThunk( function(err, res) {
+                                        console.log('Print-Job result', res);
+                                }));
+                        }
+                });
+        } else if ( typeof buffer === "string") {
+                var uri = buffer;
                 var msg = {
                         "operation-attributes-tag": {
-                            "requesting-user-name": user_name,
-                            "job-name": job_name,
-                            "document-format": mime
+                                "requesting-user-name": user_name,
+                                "job-name": job_name,
+                                "document-format": PDF_MIME
                         }
                         , "job-attributes-tag": {
-                            "copies": copies
+                                "copies": Number(copies),
                         }
-                        , data: buffer
                 };
-                var supported = helper.try_get(service, "printer-attributes-tag/document-format-supported");
-                if ((Array.isArray(supported) && supported.indexOf(mime) === -1)
-                || (typeof supported === 'string' && supported !== mime)) {
-                        return this.__blob2PDF(mime, data, function (err, pdf_filename, img_filename) {
-                                if (err) return console.log(err);
-
-                                fs.readFile(pdf_filename, function (err2, img_data) {
-                                        if (err2) return console.log(err2);
-
-                                        msg['data'] = img_data;
-                                        msg['operation-attributes-tag']['document-format'] = PDF_MIME;
-                                        printer.execute("Print-Job", msg, __print_job_thunk( function(err, res) {
-                                                console.log('Print-Job result', res);
+                __detect_uri_mime(uri, function (err, mime) {
+                        if (err) return cb(err);
+                        if (mime !== PDF_MIME) {
+                                __uri2PDF(params.uri, function (err, pdf) {
+                                    if (err) return console.log(err);
+                                    console.log('PDF total pages ', pdf.numberOfPages);
+                                    var bufs = [];
+                                    var stream = pdf.stream;
+                                    stream.on('data', function (data) {
+                                        bufs.push(data);
+                                    });
+                                    stream.on('end', function () {
+                                        msg['data'] = Buffer.concat(bufs);
+                                        printer.execute("Print-Job", msg, this.__printJobThunk( function(err, res) {
+                                            console.log('Print-Job result', res);
                                         }));
-                                        //clean up
-                                        fs.unlink(pdf_filename);
-                                        fs.unlink(img_filename);
+                                    });
+                                    stream.on('error', function (err) {
+                                        console.log('received PDF error', err);
+                                    });
                                 });
-                        });
-                } else {
-                        return printer.execute("Print-Job", msg, __printJobThunk( function(err, res) {
-                                console.log('Print-Job result', res);
-                        }));
-                }
-        });
+                         } else {
+                                msg['operation-attributes-tag']['document-uri'] = uri;
+                                printer.execute("Print-URI", msg, this.__printJobThunk( function(err, res) {
+                                    console.log('Print-Job result', res);
+                                }));
+                         }
+                });
+                return cb();
+        }
 }
 
 function get_ipp_info(ip, service){
@@ -115,11 +183,11 @@ function get_ipp_info(ip, service){
                                 raw: res,
                                 funcs: {
                                         print: function(params) {
-                                                var buffer = params.data;
+                                                var data = params.data;
                                                 var copies = params.copies || 1;
                                                 var job_name = params.job_name || uuid();
                                                 var user_name = params.user_name || "Anonymous";
-                                                return print(buffer, service, copies, job_name, user_name);
+                                                return print(data, service, copies, job_name, user_name);
                                         }
                                 }
                         };

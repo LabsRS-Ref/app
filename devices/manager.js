@@ -20,7 +20,7 @@ function register_global_funcs(){
         global.DeviceManager.register = function register(ns, dev){
                 if(ns && dev && dev.id){
                         Devices[ns] = Devices[ns] || {};
-                        Devices[ns][dev.id] = dev.id;
+                        Devices[ns][dev.id] = {};
                         Devices[ns][dev.id]["name"] = dev.name || "";
                         Devices[ns][dev.id]["icon"] = dev.icon || "";
                         Devices[ns][dev.id]["raw"] = dev.raw || {};
