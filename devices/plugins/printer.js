@@ -17,7 +17,6 @@ var SERVICE_TYPE = "_ipp._tcp.";
 var DATA_TMP_DIR = '/var/tmp/edge_ipp';
 var PDF_MIME = 'application/pdf';
 
-var emitter = new events.EventEmitter();
 var alive = {};
 var watch_addr = {};
 
@@ -167,14 +166,18 @@ function print(data, service, copies, job_name, user_name) {
     }
 }
 
-function get_ipp_info(ip, service) {
-    var url = util.format('http://%s:%d/%s', ip
-        , service.port, service.txtRecord.rp);
-    var printer = ipp.Printer(url);
-    if (printer) {
-        printer.execute("Get-Printer-Attributes", null, function (err, res) {
-            if (err) return console.log(err.red);
+function get_printer_attrs(printer, ip, service) {
+    printer.execute("Get-Printer-Attributes", null, function (err, res) {
+        if (res && res.statusCode !== "successful-ok") err = res.statusCode;
 
+        if (err) {
+            helper.retry(function() {
+                console.log("some error occurs, it will retry it 2 seconds after.".yellow);
+                get_printer_attrs(printer, ip, service);}, 2);
+            return console.log(err.red);
+        }
+        else {
+            console.log(service);
             var dev = {
                 id: ip,
                 name: service.txtRecord.ty,
@@ -192,8 +195,15 @@ function get_ipp_info(ip, service) {
             };
             console.log(dev);
             DeviceManager.register("ipp", dev);
-        });
-    }
+        }
+    });
+}
+
+function get_ipp_info(ip, service) {
+    var url = util.format('http://%s:%d/%s', ip
+        , service.port, service.txtRecord.rp);
+    var printer = ipp.Printer(url);
+    if (printer) get_printer_attrs(printer, ip, service);
 }
 
 function event_proxy(event, service) {
@@ -220,8 +230,8 @@ function event_proxy(event, service) {
             alive[addr][typeString] = {};
         }
         alive[addr][typeString][s] = service;
-        //emitter.emit("serviceUp", addr, service);
 
+        //console.log(service);
         get_ipp_info(ip, service);
 
         if (watch_addr[addr]) {
@@ -238,7 +248,6 @@ function event_proxy(event, service) {
             }
         }
         DeviceManager.unregister("ipp", ip);
-        //emitter.emit("serviceDown", addr, service);
         if (watch_addr[addr]) {
             watch_addr[addr][1](service, Alive[addr]);
         }
@@ -284,7 +293,6 @@ function init() {
 
     process.on("exit", function () {
         browser.stop();
-        emitter.removeAllListeners();
     });
 
     cli.debug();

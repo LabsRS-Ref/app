@@ -6,4 +6,8 @@ module.exports.try_get = function try_get(obj, path) {
         else break;
     }
     return o;
-}
+};
+
+module.exports.retry = function retry(job, seconds) {
+    setTimeout(job, seconds * 1000);
+};

@@ -1,9 +1,15 @@
 var fs = require("fs");
 var path = require("path");
+var events = require("events");
+
+var emitter = new events.EventEmitter();
+process.on("exit", function(){
+    emitter.removeAllListeners();
+});
 
 function require_all_plugins() {
     var js = [];
-    var pth = path.resolve("./plugins");
+    var pth = path.resolve(path.join(process.env.ROOT_PATH,"devices/plugins"));
     var files = fs.readdirSync(pth);
     files.forEach(function (file) {
         var file_path = path.join(pth, file);
@@ -25,16 +31,27 @@ function register_global_funcs() {
             Devices[ns][dev.id]["icon"] = dev.icon || "";
             Devices[ns][dev.id]["raw"] = dev.raw || {};
             Devices[ns][dev.id]["funcs"] = dev.funcs || {};
+
+            emitter.emit("UP", ns, dev.id);
         }
     };
     global.DeviceManager.unregister = function unregister(ns, id) {
+        emitter.emit("DOWN", ns, id);
         if (Devices[ns] && Devices[ns][id]) delete Devices[ns][id];
     }
 }
 
-module.exports.init = function init() {
+module.exports.init = function init(channel) {
     console.log("require all plugins...".green);
     require_all_plugins();
     console.log("register global functions...".green);
     register_global_funcs();
+
+    emitter.on("UP", function(ns, id){
+        channel.send(ns + ".UP", id, Devices[ns][id].name, Devices[ns][id].icon);
+    });
+    emitter.on("DOWN", function(ns, id){
+        channel.DOWN(ns + ".DOWN", id);
+    });
 };
+module.exports.Events = emitter;
