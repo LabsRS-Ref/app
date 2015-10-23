@@ -37,6 +37,7 @@
     "colors": "*",
     "cli_debug": "*",
     "debug" : "*",
+    "ipp": "*",
     "spotify-node-applescript": "*"
   },
   "devDependencies": {
