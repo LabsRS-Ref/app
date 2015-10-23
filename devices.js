@@ -1,4 +1,3 @@
-require("colors");
 var dns = require("dns");
 var mdns = require("mdns");
 var events = require("events");
@@ -19,7 +18,7 @@ function eventProxy(event, service) {
                 console.log(JSON.stringify(service));
                 return;
         }
-        dns.lookup(service.host,(err, ip, family) => {
+        dns.lookup(service.host, function (err, ip, family){
             if (err) return console.log(err.red);
 
             //if (!ip) return;
@@ -74,7 +73,7 @@ function browseService(service) {
         });
         manual[string_].on("serviceUp", eventProxy.bind(null, 1));
         manual[string_].on("serviceDown", eventProxy.bind(null, 0));
-        manual[string_].on("error",(err) => {
+        manual[string_].on("error", function (err) {
             console.log(err);
         });
         manual[string_].start();

@@ -1,4 +1,5 @@
 'use strict';
+require("colors");
 const app = require('app');
 const BrowserWindow = require('browser-window');
 const Tray = require('tray');
@@ -9,6 +10,7 @@ const fs = require('fs')
 const path = require('path');
 const server = require("./appext_server/server");
 const devices = require("./devices");
+const device_manager = require("./devices/manager");
 
 // report crashes to the Electron project
 require('crash-reporter').start();
@@ -76,6 +78,6 @@ app.on('ready', () => {
 	//server
 	server.serve(mainWindow.webContents);
 
-	//MDNS
-	devices.serve();
+	//devices discover
+
 });
