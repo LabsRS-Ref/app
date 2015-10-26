@@ -43,7 +43,8 @@
     "fs-extra": "*",
     "pdf-image-pack": "*",
     "request": "*",
-    "xmljson": "*"
+    "xmljson": "*",
+    "async" : "*"
   },
   "devDependencies": {
     "electron-packager": "^5.0.0",

@@ -13,5 +13,7 @@ module.exports.retry = function retry(job, seconds) {
 };
 
 module.exports.isMAC = function isMAC(str){
-    return str ? (str.match(/:/g || []).length == 5) : false;
+    var matched = str.match(/:/g);
+    if(matched && matched.length) return matched.length === 5;
+    return false;
 };
