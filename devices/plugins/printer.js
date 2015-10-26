@@ -169,7 +169,7 @@ function get_printer_attrs(MAC, printer, ip, service) {
 
         if (err) {
             helper.retry(function () {
-                console.log("some error occurs, it will retry it 2 seconds after.".yellow);
+                console.log("some error occurs when get ipp info, it will retry it 2 seconds after.".yellow);
                 get_printer_attrs(MAC, printer, ip, service);
             }, 2);
             return console.log(err.red);
@@ -206,7 +206,7 @@ function get_ipp_info(MAC, ip, service) {
 
 function device_up_or_down(event, ip, service){
     arp.getMAC(ip, function (code, addr) {
-        if (addr) {
+        if (addr && helper.isMAC(addr)) {
             console.log("MAC", addr);
             if (event == 1) { //up
                 get_ipp_info(addr, ip, service)
@@ -214,6 +214,11 @@ function device_up_or_down(event, ip, service){
             } else if (event == 0) {
                 DeviceManager.unregister("ipp", addr);
             }
+        } else {
+            helper.retry(function() {
+                console.log("some error occurs when get MAC, it will retry it 1 seconds after.".yellow);
+                device_up_or_down(event, ip, service);
+            }, 1);
         }
     });
 }
@@ -263,4 +268,5 @@ function init() {
     });
 }
 
-init();
+module.exports.init = init;
+

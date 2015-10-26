@@ -11,3 +11,7 @@ module.exports.try_get = function try_get(obj, path) {
 module.exports.retry = function retry(job, seconds) {
     setTimeout(job, seconds * 1000);
 };
+
+module.exports.isMAC = function isMAC(str){
+    return (str.match(/:/g || []).length == 5);
+};

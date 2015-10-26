@@ -71,4 +71,5 @@ function init() {
     });
 }
 
-init();
+module.exports.init = init;
+//module.exports.disabled = 1;

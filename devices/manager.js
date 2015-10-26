@@ -15,7 +15,9 @@ function require_all_plugins() {
         var file_path = path.join(pth, file);
         var stat = fs.lstatSync(file_path);
         if (stat.isFile() && file.substr(-3) === ".js") {
-            require(file_path);
+            var m = require(file_path);
+            if(!m.hasOwnProperty("disabled"))
+                m.init();
         }
     });
 }
