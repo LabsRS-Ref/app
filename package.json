@@ -42,7 +42,8 @@
     "mmmagic": "*",
     "fs-extra": "*",
     "pdf-image-pack": "*",
-    "request": "*"
+    "request": "*",
+    "xmljson": "*"
   },
   "devDependencies": {
     "electron-packager": "^5.0.0",

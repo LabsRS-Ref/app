@@ -37,7 +37,11 @@ function event_proxy(event, service) {
         return;
     }
 
-    dns.lookup(service.host, function (err, ip) {
+    dns.lookup(service.host, {
+        family: 4,
+        hints: dns.ADDRCONFIG | dns.V4MAPPED,
+        all: false
+    }, function (err, ip) {
 
         if (err) return console.log(err.red);
         console.log((event ? "+" : "-") + " " + service.type + "@" + ip);
