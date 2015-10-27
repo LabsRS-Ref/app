@@ -45,7 +45,7 @@
     "request": "*",
     "xmljson": "*",
     "async" : "*",
-    "chunking-streams": "*"
+    "binary": "*"
   },
   "devDependencies": {
     "electron-packager": "^5.0.0",

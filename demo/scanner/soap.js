@@ -42,10 +42,10 @@ function _wrap_wscn_immediate_func(uri, xml) {
     };
 };
 
-function _wrap_wscn_streaming_func(uri, xml, write_stream) {
+function _wrap_wscn_streaming_func(uri, xml) {
     var req_xml = _SOAP_HEADER + xml + _SOAP_TAIL;
-    return function (cb) {
-        request({
+    return function (onresp, onerr) {
+        return request({
             uri: uri,
             method: "POST",
             body: req_xml,
@@ -55,15 +55,9 @@ function _wrap_wscn_streaming_func(uri, xml, write_stream) {
                 "Content-Length": req_xml.length,
                 "SOAPAction": ""
             },
-        }, function (err, message, response) {
-            if (err) return cb(err);
-            to_json(response, function (err, json) {
-                if (err) return cb(err);
-
-                return cb(undefined, json && json["SOAP-ENV:Envelope"]["SOAP-ENV:Body"]);
-            });
         })
-        .pipe(write_stream);
+            .on("response", onresp)
+            .on("error", onerr);
     };
 };
 
@@ -129,14 +123,14 @@ function _create_scan_job_request(uri, cb) {
     return func(cb);
 };
 
-function _retrieve_image_request(uri, jobId, jobToken, write_stream, cb) {
+function _retrieve_image_request(uri, jobId, jobToken, onresp, onerr) {
     var xml =
         '<wscn:RetrieveImageRequest>\n' +
         '<wscn:JobId>' + jobId + '</wscn:JobId>\n' +
         '<wscn:JobToken>' + jobToken + '</wscn:JobToken>\n' +
         '</wscn:RetrieveImageRequest>';
-    var func = _wrap_wscn_streaming_func(uri, xml, write_stream);
-    return func(cb);
+    var func = _wrap_wscn_streaming_func(uri, xml);
+    return func(onresp, onerr);
 }
 
 ScannerSoap.prototype.GetScannerStatus = function GetScannerStatus(cb) {
@@ -153,11 +147,8 @@ ScannerSoap.prototype.CreateJob = function CreateJob(cb) {
     });
 };
 
-ScannerSoap.prototype.RetrieveImage = function RetrieveImage(jobId, jobToken, write_stream, cb) {
-    _retrieve_image_request(this.uri, jobId, jobToken, write_stream, function (err) {
-        if (err) return cb(err);
-        return cb(undefined);
-    });
+ScannerSoap.prototype.RetrieveImage = function RetrieveImage(jobId, jobToken, onresp, onerr) {
+    return _retrieve_image_request(this.uri, jobId, jobToken, onresp, onerr);
 };
 
 module.exports = ScannerSoap;
