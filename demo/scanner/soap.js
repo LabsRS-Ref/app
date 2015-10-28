@@ -178,9 +178,14 @@ function _peek_buffer(data) {
     }
 }
 
+function _make_uri(ip) {
+    return "http://" + ip + ":8289/";
+}
+
 function ScannerSoap(ip, init_cb) {
-    this.uri = "http://" + ip + ":8289/";
-    this.Probe(function(err, is_scanner){
+    this.uri = _make_uri(ip);
+    _get_scanner_elements(this.uri, function(err){
+        var is_scanner = !!!err;
         if(!is_scanner) return init_cb(new Error(uri, " has not provide SOAP services."));
         return init_cb();
     });
@@ -237,13 +242,13 @@ ScannerSoap.prototype.RetrieveImage = function RetrieveImage(jobId, jobToken, fi
         });
 };
 
-ScannerSoap.prototype.Probe = function Probe(cb) {
-    _get_scanner_elements(this.uri, function (err) {
+module.exports = ScannerSoap;
+
+module.exports.Probe = function Probe(ip, cb) {
+    _get_scanner_elements(_make_uri(ip), function (err) {
         return cb(undefined, !!!err);
     });
 };
-
-module.exports = ScannerSoap;
 
 module.exports.Scan = function Scan(ip, file_path, cb) {
     var client = new ScannerSoap(ip, function(err){
