@@ -1,6 +1,7 @@
 var util = require('util');
 var spawn = require('child_process').spawn;
-
+var ip_regex = "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
+var mac_regex = "([0-9a-f]{1,2}[\.:-]){5}([0-9a-f]{1,2})";
 /**
  * Read the MAC address from the ARP table.
  *
@@ -24,6 +25,23 @@ module.exports.getMAC = function(ipaddress, cb) {
 	}
 };
 
+// return  { ["192.168.40.1"] = "6c:b0:ce:f4:b7:d8" }
+module.exports.getAllIPAddress = function getAllIPAddresses(cb) {
+    if (process.platform.indexOf('linux') === 0) {
+        //IP address       HW type     Flags       HW address            Mask     Device
+        //192.168.1.1      0x1         0x2         50:67:f0:8c:7a:3f     *        em1
+        _get_iptables("cat", ["/proc/net/arp"], cb);
+    }
+    else if (process.platform.indexOf('win') === 0) {
+        //192.168.40.1      6c:b0:ce:f4:b7:d8       static
+        _get_iptables("arp", ["-a"], cb);
+    }
+    else if (process.platform.indexOf('darwin') === 0) {
+        //? (192.168.40.1) at 6c:b0:ce:f4:b7:d8 on en1 ifscope [ethernet]
+        _get_iptables("arp", ["-an"], cb);
+    }
+};
+
 /**
  * read from cat /proc/net/arp
  */
@@ -34,41 +52,11 @@ module.exports.readMACLinux = function(ipaddress, cb) {
 
 	ping.on('exit', function (code) {
 		// not bothered if ping did not work
-
-		var arp = spawn("cat", ["/proc/net/arp"] );
-		var buffer = '';
-		var errstream = '';
-		arp.stdout.on('data', function (data) {
-			buffer += data;
-		});
-		arp.stderr.on('data', function (data) {
-			errstream += data;
-		});
-
-		arp.on('exit', function (code) {
-			if (code != 0) {
-				console.log("Error running arp " + code + " " + errstream);
-				cb(true, code);
-			}
-			var table = buffer.split('\n');
-			for ( var l = 0; l < table.length; l++) {
-
-				// parse this format
-				//IP address       HW type     Flags       HW address            Mask     Device
-				//192.168.1.1      0x1         0x2         50:67:f0:8c:7a:3f     *        em1
-
-				if (l == 0) continue;
-
-				if (table[l].indexOf(ipaddress) == 0) {
-					var mac = table[l].substring(41, 58);
-					cb(false, mac);
-					return;
-				}
-			}
-			cb(true, "Count not find ip in arp table: " + ipaddress);
-		});
+        _get_iptables("cat", ["/proc/net/arp"], function(err, ip_tables) {
+            if(err) return cb(err);
+            return cb(undefined, ip_tables[ipaddress]);
+        });
 	});
-
 };
 
 /**
@@ -82,43 +70,11 @@ module.exports.readMACWindows = function(ipaddress, cb) {
 
 	ping.on('exit', function (code) {
 		// not bothered if ping did not work
-
-		var arp = spawn("arp", ["-a", ipaddress] );
-		var buffer = '';
-		var errstream = '';
-		arp.stdout.on('data', function (data) {
-			buffer += data;
-		});
-		arp.stderr.on('data', function (data) {
-			errstream += data;
-		});
-
-		arp.on('exit', function (code) {
-			if (code != 0) {
-				console.log("Error running arp " + code + " " + errstream);
-				cb(true, code);
-			}
-			var table = buffer.split('\n\r');
-			for ( var l = 0; l < table.length; l++) {
-				if (l == 0) continue;
-
-				// parse this format
-				//[blankline]
-				//Interface: 192.º68.1.54
-				//  Internet Address      Physical Address     Type
-				//  192.168.1.1           50-67-f0-8c-7a-3f    dynamic
-
-				if (table[l].indexOf("  " + ipaddress) == 0) {
-					var mac = table[l].substring(39, 41);
-					mac = mac.replace(/-/g, ':');
-					cb(false, mac);
-					return;
-				}
-			}
-			cb(true, "Count not find ip in arp table: " + ipaddress);
-		});
+        _get_iptables("arp", ["-a"], function(err, ip_tables) {
+            if(err) return cb(err);
+            return cb(undefined, ip_tables[ipaddress]);
+        });
 	});
-
 };
 /**
  * NOT TESTED (I dont have a MAC)
@@ -131,38 +87,41 @@ module.exports.readMACMac = function(ipaddress, cb) {
 
 	ping.on('exit', function (code) {
 		// not bothered if ping did not work
-
-		var arp = spawn("arp", [ipaddress] );
-		var buffer = '';
-		var errstream = '';
-		arp.stdout.on('data', function (data) {
-			buffer += data;
-		});
-		arp.stderr.on('data', function (data) {
-			errstream += data;
-		});
-
-		arp.on('exit', function (code) {
-			  if (code != 0) {
-				  console.log("Error running arp " + code + " " + errstream);
-				  cb(true, code);
-			  }
-			  var table = buffer.split('\n\r');
-			  for ( var l = 0; l < table.length; l++) {
-
-				// parse this format
-				//ahost (216.86.77.194) at 00:e0:18:d3:6f:3f on bge0 static
-
-				if (table[l].indexOf(ipaddress) > 0) {
-					var parts = table[l].split(" ");
-					var mac = parts[3];
-					mac = mac.replace(/-/g, ':');
-					cb(false, mac);
-					return;
-				}
-			}
-			cb(true, "Count not find ip in arp table: " + ipaddress);
-		});
+        _get_iptables("arp", ["-an"], function(err, ip_tables) {
+            if(err) return cb(err);
+            return cb(undefined, ip_tables[ipaddress]);
+        });
 	});
-
 };
+
+// return  { ["192.168.40.1"] = "6c:b0:ce:f4:b7:d8" }
+function _get_iptables(arp_command, arp_args, cb) {
+    console.log(arp_command, arp_args);
+    var arp = spawn(arp_command, arp_args);
+    var buffer = '';
+    var errstream = '';
+    arp.stdout.on('data', function (data) {
+        buffer += data;
+    });
+    arp.stderr.on('data', function (data) {
+        errstream += data;
+    });
+    arp.on('close', function(code) {
+        if (code != 0) {
+            return cb(new Error("Error running arp " + code + " " + errstream));
+        }
+        var table = buffer.split('\n');
+        var res = {};
+        for (var l = 0; l < table.length; l++) {
+            var parts1 = new RegExp(ip_regex, "gmi").exec(table[l]);
+            var parts2 = new RegExp(mac_regex, "gmi").exec(table[l]);
+            if(parts1 && parts1.length > 0 && parts2 && parts2.length > 0) {
+                res[parts1[0]] = parts2[0];
+            }
+            else console.log(table[l].red);
+        }
+        if(res.length > 0)
+            return cb(undefined, res);
+        return cb(new Error("Count not find ip in arp table."));
+    });
+}

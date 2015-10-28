@@ -5,12 +5,13 @@ var path = require("path");
 var fsextra = require("fs-extra");
 var dns = require("dns");
 var mdns = require("mdns");
+var soap = require("../miscs/soap");
 
 var SERVICE_TYPE = "_scanner._tcp.";
 var DATA_TMP_DIR = '/var/tmp/edge_scanner';
 
 function device_up_or_down(event, ip, service){
-    arp.getMAC(ip, function (code, addr) {
+    arp.getMAC(ip, function (err, addr) {
         if (addr) {
             console.log("MAC", addr);
             if (event == 1) { //up
@@ -20,6 +21,7 @@ function device_up_or_down(event, ip, service){
                     icon: "",
                     raw: service,
                     funcs: {
+                        scan: soap.Scan
                     }
                 };
                 DeviceManager.register("scanner", dev);
@@ -37,7 +39,7 @@ function event_proxy(event, service) {
         return;
     }
 
-    console.log("service".green ,service);
+    //console.log("service".green ,service);
 
     dns.lookup(service.host, {
         family: 4,
@@ -62,6 +64,10 @@ function browseService() {
     return browser;
 }
 
+function probe_scanner() {
+
+}
+
 function init() {
     if (fs.existsSync(DATA_TMP_DIR)) fsextra.removeSync(DATA_TMP_DIR);
     fs.mkdirSync(DATA_TMP_DIR);
@@ -74,6 +80,11 @@ function init() {
 
     process.on("exit", function () {
         browser.stop();
+    });
+
+    arp.getAllIPAddress(function(err, res){
+        if(err) return console.log(err.red);
+        console.log("IP Addresses".green, res);
     });
 }
 

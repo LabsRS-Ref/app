@@ -205,7 +205,7 @@ function get_ipp_info(MAC, ip, service) {
 }
 
 function device_up_or_down(event, ip, service){
-    arp.getMAC(ip, function (code, addr) {
+    arp.getMAC(ip, function (err, addr) {
         if (addr && helper.isMAC(addr)) {
             console.log("MAC", addr);
             if (event == 1) { //up
@@ -274,3 +274,4 @@ function init() {
 
 module.exports.init = init;
 
+module.exports.disabled = 1;

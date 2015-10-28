@@ -18,7 +18,11 @@ function eventProxy(event, service) {
                 console.log(JSON.stringify(service));
                 return;
         }
-        dns.lookup(service.host, function (err, ip, family){
+        dns.lookup(service.host, {
+            family: 4,
+            hints: dns.ADDRCONFIG | dns.V4MAPPED,
+            all: false
+        }, function (err, ip){
             if (err) return console.log(err.red);
 
             //if (!ip) return;
