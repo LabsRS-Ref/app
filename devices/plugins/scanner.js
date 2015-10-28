@@ -6,10 +6,20 @@ var fsextra = require("fs-extra");
 var dns = require("dns");
 var mdns = require("mdns");
 var soap = require("../miscs/soap");
+var uuid = require("uuid");
 
 var SERVICE_TYPE = "_scanner._tcp.";
 var DATA_TMP_DIR = '/var/tmp/edge_scanner';
 var cached_scanner = {};
+
+function scan_thunk(ip){
+    return function(cb) {
+        var jpg_path = path.join(DATA_TMP_DIR, uuid() + ".jpeg");
+        return soap.Scan(ip, jpg_path, function(err) {
+            return cb(err, jpg_path)
+        });
+    }
+}
 
 function device_up_or_down(event, ip, service){
     arp.getMAC(ip, function (err, MAC) {
@@ -22,7 +32,7 @@ function device_up_or_down(event, ip, service){
                     icon: "",
                     raw: service,
                     funcs: {
-                        scan: soap.Scan.bind(null, ip)
+                        scan: scan_thunk(ip)
                     }
                 };
                 cached_scanner[ip] = 1;
@@ -85,6 +95,12 @@ function init() {
         browser.stop();
     });
 
+    exports.probe();
+}
+
+module.exports.init = init;
+
+module.exports.probe = function probe() {
     arp.getAllIPAddress(function(err, ip_tables){
         if(err) return console.log(err.red);
 
@@ -99,7 +115,7 @@ function init() {
                             icon: "",
                             raw: {},
                             funcs: {
-                                scan: soap.Scan.bind(null, ip)
+                                scan: scan_thunk(ip)
                             }
                         };
                         cached_scanner[ip] = 1;
@@ -110,6 +126,4 @@ function init() {
         });
     });
 }
-
-module.exports.init = init;
 //module.exports.disabled = 1;

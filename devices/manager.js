@@ -1,6 +1,7 @@
 var fs = require("fs");
 var path = require("path");
 var events = require("events");
+var helper = require("./miscs/helper");
 
 var emitter = new events.EventEmitter();
 process.on("exit", function(){
@@ -43,7 +44,7 @@ function register_global_funcs() {
     }
 }
 
-module.exports.init = function init(channel) {
+module.exports.init = function init(channel, ipc) {
     console.log("require all plugins...".green);
     require_all_plugins();
     console.log("register global functions...".green);
@@ -53,7 +54,18 @@ module.exports.init = function init(channel) {
         channel.send(ns + ".UP", id, Devices[ns][id].name, Devices[ns][id].icon);
     });
     emitter.on("DOWN", function(ns, id){
-        channel.DOWN(ns + ".DOWN", id);
+        channel.send(ns + ".DOWN", id);
+    });
+
+    ipc.on("scan", function(event, id) {
+        console.log("received scan message".green, id);
+
+        if(helper.try_get(Devices, "scanner/"+ id + "/funcs/scan")) {
+            Devices["scanner"][id].funcs.scan(function(err, jpg_path){
+                if(err) return console.log(err.red);
+                event.sender.send("scan.done", id, jpg_path);
+            });
+        }
     });
 };
 module.exports.Events = emitter;
