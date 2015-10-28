@@ -1,13 +1,12 @@
 require("colors");
 var ScannerSoap = require("./soap");
 var fs = require("fs");
-var binary = require("binary");
 
 var uri = 'http://192.168.40.37:8289/';
 var jpg_filepath = "./test.jpeg";
 var client = new ScannerSoap(uri);
 
-//var types = {};
+var types = {};
 
 function parseBuffer(data, cb) {
     var buffer = data;
@@ -28,23 +27,23 @@ function parseBuffer(data, cb) {
     var afterData = ((dataLength % 4 > 0) ? (4 - (dataLength % 4)) : 0) + afterType + dataLength;
     var data = buffer.slice(afterType, afterData);
 
-    //var dataType = buffer.slice(afterId, afterType).toString('utf8');
-    //if(!types[dataType]) {
-    //    console.log(`
-    //            version = ${version}
-    //            FLAG = ${MB} ${ME} ${CF}
-    //            packtype = ${packtype}
-    //            headtype = ${headtype}
-    //            optionLength = ${optionLength}
-    //            idLength = ${idLength}
-    //            typeLength = ${typeLength}
-    //            dataLength = ${dataLength}
-    //            options = ${ buffer.slice(cursor, afterOptions).toString('utf8') }
-    //            id = ${ buffer.slice(afterOptions, afterId).toString('utf8') }
-    //            type = ${ dataType }
-    //        `);
-    //    types[dataType] = 1;
-    //}
+    var dataType = buffer.slice(afterId, afterType).toString('utf8');
+    if(!types[dataType]) {
+        console.log(`
+                version = ${version}
+                FLAG = ${MB} ${ME} ${CF}
+                packtype = ${packtype}
+                headtype = ${headtype}
+                optionLength = ${optionLength}
+                idLength = ${idLength}
+                typeLength = ${typeLength}
+                dataLength = ${dataLength}
+                options = ${ buffer.slice(cursor, afterOptions).toString('utf8') }
+                id = ${ buffer.slice(afterOptions, afterId).toString('utf8') }
+                type = ${ dataType }
+            `);
+        types[dataType] = 1;
+    }
 
     if (!MB)
         cb(data);

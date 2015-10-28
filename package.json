@@ -44,8 +44,7 @@
     "pdf-image-pack": "*",
     "request": "*",
     "xmljson": "*",
-    "async" : "*",
-    "binary": "*"
+    "async" : "*"
   },
   "devDependencies": {
     "electron-packager": "^5.0.0",
