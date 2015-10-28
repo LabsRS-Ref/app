@@ -96,7 +96,7 @@ module.exports.readMACMac = function(ipaddress, cb) {
 
 // return  { ["192.168.40.1"] = "6c:b0:ce:f4:b7:d8" }
 function _get_iptables(arp_command, arp_args, cb) {
-    console.log(arp_command, arp_args);
+    //console.log(arp_command, arp_args);
     var arp = spawn(arp_command, arp_args);
     var buffer = '';
     var errstream = '';
@@ -120,7 +120,7 @@ function _get_iptables(arp_command, arp_args, cb) {
             }
             else console.log(table[l].red);
         }
-        if(res.length > 0)
+        if(Object.keys(res).length > 0)
             return cb(undefined, res);
         return cb(new Error("Count not find ip in arp table."));
     });

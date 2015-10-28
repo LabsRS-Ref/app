@@ -9,24 +9,27 @@ var soap = require("../miscs/soap");
 
 var SERVICE_TYPE = "_scanner._tcp.";
 var DATA_TMP_DIR = '/var/tmp/edge_scanner';
+var cached_scanner = {};
 
 function device_up_or_down(event, ip, service){
-    arp.getMAC(ip, function (err, addr) {
-        if (addr) {
-            console.log("MAC", addr);
+    arp.getMAC(ip, function (err, MAC) {
+        if (MAC) {
+            console.log("MAC", MAC);
             if (event == 1) { //up
                 var dev = {
-                    id: addr,
-                    name: "",
+                    id: MAC,
+                    name: service.name,
                     icon: "",
                     raw: service,
                     funcs: {
-                        scan: soap.Scan
+                        scan: soap.Scan.bind(null, ip)
                     }
                 };
+                cached_scanner[ip] = 1;
                 DeviceManager.register("scanner", dev);
             } else if (event == 0) {
-                DeviceManager.unregister("scanner", addr);
+                delete cached_scanner[ip];
+                DeviceManager.unregister("scanner", MAC);
             }
         }
     });
@@ -82,9 +85,29 @@ function init() {
         browser.stop();
     });
 
-    arp.getAllIPAddress(function(err, res){
+    arp.getAllIPAddress(function(err, ip_tables){
         if(err) return console.log(err.red);
-        console.log("IP Addresses".green, res);
+
+        Object.keys(ip_tables).forEach(function(ip) {
+            if(!cached_scanner[ip]) {
+                soap.Probe(ip, function(err, is_scanner, result){
+                    if(is_scanner) {
+                        console.log("Scanner elements:".blue, JSON.stringify(result));
+                        var dev = {
+                            id: ip_tables[ip],
+                            name: result["wscn:ScanElements"]["ScannerInfo"]["ModelNumber"],
+                            icon: "",
+                            raw: {},
+                            funcs: {
+                                scan: soap.Scan.bind(null, ip)
+                            }
+                        };
+                        cached_scanner[ip] = 1;
+                        DeviceManager.register("scanner", dev);
+                    }
+                });
+            }
+        });
     });
 }
 

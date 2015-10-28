@@ -1,6 +1,7 @@
 /dist
 build/
 demo/scanner/*.jpeg
+*.jpeg
 # Logs
 DerivedData
 logs

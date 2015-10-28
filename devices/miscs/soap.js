@@ -245,8 +245,8 @@ ScannerSoap.prototype.RetrieveImage = function RetrieveImage(jobId, jobToken, fi
 module.exports = ScannerSoap;
 
 module.exports.Probe = function Probe(ip, cb) {
-    _get_scanner_elements(_make_uri(ip), function (err) {
-        return cb(undefined, !!!err);
+    _get_scanner_elements(_make_uri(ip), function (err, result) {
+        return cb(undefined, !!!err, result);
     });
 };
 
