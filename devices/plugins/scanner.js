@@ -37,6 +37,8 @@ function event_proxy(event, service) {
         return;
     }
 
+    console.log("service".green ,service);
+
     dns.lookup(service.host, {
         family: 4,
         hints: dns.ADDRCONFIG | dns.V4MAPPED,

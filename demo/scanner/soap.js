@@ -1,6 +1,9 @@
+require("colors");
 var request = require("request");
 var to_json = require("xmljson").to_json;
-//var chunked_streams = require('chunking-streams');
+var fs = require("fs");
+var path = require("path");
+var uuid = require("uuid");
 
 var _SOAP_HEADER =
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
@@ -25,6 +28,7 @@ function _wrap_wscn_immediate_func(uri, xml) {
             uri: uri,
             method: "POST",
             body: req_xml,
+            timeout: 2000,
             headers: {
                 "Content-Type": "text/xml; charset=utf-8",
                 "User-Agent": "gSOAP/2.7",
@@ -60,10 +64,6 @@ function _wrap_wscn_streaming_func(uri, xml) {
             .on("error", onerr);
     };
 };
-
-function ScannerSoap(uri) {
-    this.uri = uri
-}
 
 function _get_scanner_elements(uri, cb) {
     var xml = '<wscn:GetScannerElements></wscn:GetScannerElements>';
@@ -133,6 +133,59 @@ function _retrieve_image_request(uri, jobId, jobToken, onresp, onerr) {
     return func(onresp, onerr);
 }
 
+function _parse_buffer(data, write_cb) {
+    var buffer = data;
+    var cursor = 12;
+    var version = buffer.readUInt8(0) >> 3;
+    var MB = (buffer.readUInt8(0) & 0x04) >> 2;
+    var ME = (buffer.readUInt8(0) & 0x02) >> 1;
+    var CF = buffer.readUInt8(0) & 0x01;
+    var packtype = buffer.readUInt8(0) & 0x07;
+    var headtype = buffer.readUInt8(1) >> 4;
+    var optionLength = buffer.readUInt16BE(2);
+    var afterOptions = cursor + ((optionLength % 4 > 0) ? (4 - (optionLength % 4)) : 0) + optionLength;
+    var idLength = buffer.readUInt16BE(4);
+    var afterId = ((idLength % 4 > 0) ? (4 - (idLength % 4)) : 0) + afterOptions + idLength;
+    var typeLength = buffer.readUInt16BE(6);
+    var afterType = ((typeLength % 4 > 0) ? (4 - (typeLength % 4)) : 0) + typeLength + afterId;
+    var dataLength = buffer.readUInt32BE(8);
+    var afterData = ((dataLength % 4 > 0) ? (4 - (dataLength % 4)) : 0) + afterType + dataLength;
+    var data = buffer.slice(afterType, afterData);
+
+    var dataType = buffer.slice(afterId, afterType).toString('utf8');
+
+    if (!MB)
+        write_cb(undefined, data, ME);
+
+    return afterData;
+}
+
+function _peek_buffer(data) {
+    if (data.length >= 12) {
+        var cursor = 12;
+        var buffer = data;
+        var optionLength = buffer.readUInt16BE(2);
+        var afterOptions = cursor + ((optionLength % 4 > 0) ? (4 - (optionLength % 4)) : 0) + optionLength;
+        var idLength = buffer.readUInt16BE(4);
+        var afterId = ((idLength % 4 > 0) ? (4 - (idLength % 4)) : 0) + afterOptions + idLength;
+        var typeLength = buffer.readUInt16BE(6);
+        var afterType = ((typeLength % 4 > 0) ? (4 - (typeLength % 4)) : 0) + typeLength + afterId;
+        var dataLength = buffer.readUInt32BE(8);
+        var afterData = ((dataLength % 4 > 0) ? (4 - (dataLength % 4)) : 0) + afterType + dataLength;
+        return afterData;
+    } else {
+        return -1;
+    }
+}
+
+function ScannerSoap(ip, init_cb) {
+    this.uri = "http://" + ip + ":8289/";
+    this.Probe(function(err, is_scanner){
+        if(!is_scanner) return init_cb(new Error(uri, " has not provide SOAP services."));
+        return init_cb();
+    });
+}
+
 ScannerSoap.prototype.GetScannerStatus = function GetScannerStatus(cb) {
     _get_scanner_elements(this.uri, function (err, result) {
         if (err) return cb(err);
@@ -147,10 +200,77 @@ ScannerSoap.prototype.CreateJob = function CreateJob(cb) {
     });
 };
 
-ScannerSoap.prototype.RetrieveImage = function RetrieveImage(jobId, jobToken, onresp, onerr) {
-    return _retrieve_image_request(this.uri, jobId, jobToken, onresp, onerr);
+ScannerSoap.prototype.RetrieveImage = function RetrieveImage(jobId, jobToken, file_path, cb) {
+    return _retrieve_image_request(this.uri, jobId, jobToken,
+        function (response) {
+            //console.log(response.headers['content-type'].green) // 'image/jpeg'
+
+            var chunked = undefined;
+            var offset = 0;
+            response.on('data', function (data) {
+
+                if (chunked) {
+                    var temp = new Buffer(chunked.length + data.length);
+                    chunked.copy(temp, 0, 0, chunked.length);
+                    data.copy(temp, chunked.length, 0, data.length);
+                    chunked = undefined;
+                    data = temp;
+                }
+
+                offset = 0;
+                while (offset < data.length) {
+                    var buf = data.slice(offset);
+                    if (_peek_buffer(buf) > buf.length || _peek_buffer(buf) === -1) {
+                        chunked = buf;
+                        return;
+                    }
+                    offset = _parse_buffer(buf, function (err, data, end) {
+                        if(err) return cb(err);
+                        fs.appendFileSync(file_path, data, {encoding: "binary"});
+                        if(end === 1) return cb();
+                    });
+                }
+            });
+        },
+        function (err) {
+            return cb(err);
+        });
+};
+
+ScannerSoap.prototype.Probe = function Probe(cb) {
+    _get_scanner_elements(this.uri, function (err) {
+        return cb(undefined, !!!err);
+    });
 };
 
 module.exports = ScannerSoap;
+
+module.exports.Scan = function Scan(ip, file_path, cb) {
+    var client = new ScannerSoap(ip, function(err){
+        if(err) return cb(err);
+
+        client.GetScannerStatus(function (err, status) {
+            if (err) return cb(err);
+            var state = status["ScannerState"];
+            if (state === "Idle") {
+
+                client.CreateJob(function (err, job) {
+                    if (err) throw err;
+                    var jobId = job.JobId;
+                    var jobToken = job.JobToken;
+                    if (fs.existsSync(file_path))
+                        fs.unlinkSync(file_path);
+
+                    client.RetrieveImage(jobId, jobToken, file_path, function(err){
+                        return cb(err);
+                    });
+                });
+
+            } else {
+                return cb(new Error("Scanner in:" + state));
+            }
+        });
+    });
+};
 
 
